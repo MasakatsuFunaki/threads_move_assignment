@@ -11,7 +11,7 @@ include(GoogleTest)
 # ---- Test executable ----
 
 add_executable(my-first-project_test 
-    source/my-first-project_test.cpp
+    source/my_first_project_test.cpp
 )
 
 target_link_libraries(my-first-project_test PRIVATE 

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "my-first-project/my-first-project.hpp"
+#include "my_first_project/my_first_project.hpp"
 
 // Basic test for the version function
 TEST(MyFirstProjectTest, GetVersion) {

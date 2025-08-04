@@ -1,4 +1,4 @@
-#include "my-first-project/my-first-project.hpp"
+#include "my_first_project/my_first_project.hpp"
 #include <iostream>
 
 namespace mfp {

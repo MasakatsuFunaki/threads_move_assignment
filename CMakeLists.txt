@@ -13,7 +13,7 @@ string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}" PROJECT_IS_TO
 
 # ---- Declare library ----
 
-add_library(mfp source/my-first-project.cpp)
+add_library(mfp source/my_first_project.cpp)
 add_library(my-first-project::my-first-project ALIAS mfp)
 
 
