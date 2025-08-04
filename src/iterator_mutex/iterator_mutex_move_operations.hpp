@@ -1,17 +1,31 @@
 #pragma once
 
-// Simple library interface
-namespace mfp {
-    // Basic function declaration
-    int get_version();
-    
-    // Simple class for demonstration
-    class SimpleClass {
-    public:
-        SimpleClass();
-        ~SimpleClass();
-        void do_something();
-    private:
-        int value_;
-    };
+#include <vector>
+#include <mutex>
+#include <optional>
+
+namespace iterator_mutex {
+
+class DataBlockSequence
+{
+public:
+    DataBlockSequence(const std::vector<int>& values);
+
+    // Delete copy constructor and assignment operator
+    DataBlockSequence(const DataBlockSequence&) = delete;
+    DataBlockSequence& operator=(const DataBlockSequence&) = delete;
+    // Allow move constructor and assignment operator
+    DataBlockSequence(DataBlockSequence&& other) noexcept;
+    DataBlockSequence& operator=(DataBlockSequence&& other) noexcept;
+
+    std::optional<int> get_value(size_t index) const;
+
+    size_t get_total_size() const;
+
+private:
+    std::vector<int> blocks_;
+    mutable std::vector<int>::const_iterator mru_block_iterator_;
+    mutable std::mutex mru_mutex_;
+};
+
 }
