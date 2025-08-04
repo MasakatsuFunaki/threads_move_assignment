@@ -17,16 +17,18 @@ DataBlockSequence::DataBlockSequence(const std::vector<int>& values) : blocks_(v
 
 // Custom Move Constructor
 DataBlockSequence::DataBlockSequence(DataBlockSequence&& other) noexcept
-    // 1. Move the vector. This is the main resource transfer.
-    : blocks_(std::move(other.blocks_))
-// 2. The mutex is NOT moved. The new object's mutex is default-initialized to an unlocked state.
 {
-    // 3. The iterator from 'other' is now invalid. Initialize the new object's
-    //    iterator to a valid state relative to its newly acquired vector.
+    // Lock both mutexes to prevent deadlock and ensure safe transfer.
+    // std::scoped_lock is preferred for locking multiple mutexes.
+    std::scoped_lock lock(mru_mutex_, other.mru_mutex_);
+
+    // 1. Move the vector.
+    blocks_ = std::move(other.blocks_);
+
+    // 2. The iterator from 'other' is now invalid. Initialize our iterator.
     mru_block_iterator_ = blocks_.cbegin();
 
-    // The 'other' object is left in a valid but empty state.
-    // We can also clear its iterator to be safe.
+    // 3. Reset the moved-from object to a valid, empty state.
     other.mru_block_iterator_ = other.blocks_.cbegin();
 }
 
@@ -39,10 +41,8 @@ DataBlockSequence& DataBlockSequence::operator=(DataBlockSequence&& other) noexc
         return *this;
     }
 
-    // Since a move operation should only happen when there's exclusive access to the
-    // source object, we don't typically need to lock the source mutex. We should
-    // lock our own mutex to protect our own state during the modification.
-    std::lock_guard<std::mutex> lock(mru_mutex_);
+    // Lock both mutexes to prevent deadlock and ensure safe transfer.
+    std::scoped_lock lock(mru_mutex_, other.mru_mutex_);
 
     // 1. Move the vector's contents.
     blocks_ = std::move(other.blocks_);
@@ -50,9 +50,7 @@ DataBlockSequence& DataBlockSequence::operator=(DataBlockSequence&& other) noexc
     // 2. Re-initialize our iterator to be valid for the new data.
     mru_block_iterator_ = blocks_.cbegin();
 
-    // The 'other' object is now empty. We can clear its iterator for safety.
-    // We would need to lock its mutex if we wanted to modify it safely, but
-    // again, the assumption is no other thread is using 'other'.
+    // 3. Reset the moved-from object to a valid, empty state.
     other.mru_block_iterator_ = other.blocks_.cbegin();
 
     return *this;

@@ -216,3 +216,120 @@ TEST(DataBlockSequenceThreadTest, ConcurrentReadsAreSafe)
         t.join();
     }
 }
+
+/**
+ * @brief Tests that move-assigning from a sequence while it's being read is unsafe.
+ *
+ * This test demonstrates the necessity of the mutex. It creates one thread that
+ * continuously reads from the shared sequence and a second thread that attempts
+ * to move-assign from it. Without a lock, the reader thread will likely access
+ * a dangling pointer after the move, causing a crash (undefined behavior).
+ *
+ * Note: This test is expected to fail or crash if the mutex is not used correctly,
+ * proving that the lock is essential for protecting the object's integrity during
+ * concurrent operations that include state changes (like a move).
+ */
+TEST(DataBlockSequenceThreadTest, MoveAssignmentWhileReadingIsUnsafe)
+{
+    std::vector<int> large_vec(1000);
+    std::iota(large_vec.begin(), large_vec.end(), 0);
+
+    auto shared_seq = std::make_shared<iterator_mutex::DataBlockSequence>(large_vec);
+
+    std::atomic<bool> keep_reading = true;
+    std::atomic<bool> reader_crashed = false;
+
+    // Reader thread: Continuously reads from the sequence
+    std::thread reader_thread(
+        [&]()
+        {
+            try
+            {
+                while (keep_reading)
+                {
+                    auto val = shared_seq->get_value(500);
+                    // We don't need to assert here; we're just checking for crashes.
+                    // If the move happens, `shared_seq` becomes invalid, and this line
+                    // will likely cause a segmentation fault.
+                    if (!val.has_value() && !keep_reading)
+                    {
+                        // If reading fails after we've been told to stop, that's expected.
+                        break;
+                    }
+                }
+            }
+            catch (...)
+            {
+                reader_crashed = true;
+            }
+        });
+
+    // Give the reader a moment to start
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // Mover thread: Move-assigns from the shared sequence
+    iterator_mutex::DataBlockSequence new_seq({});
+    new_seq = std::move(*shared_seq);  // This is the critical, unsafe operation
+
+    // Signal the reader to stop and wait for it to finish
+    keep_reading = false;
+    reader_thread.join();
+
+    // The new sequence should now have the data
+    EXPECT_EQ(new_seq.get_total_size(), 1000);
+    EXPECT_TRUE(new_seq.get_value(500).has_value());
+
+    // If the reader crashed, the test fails.
+    EXPECT_FALSE(reader_crashed) << "The reader thread crashed due to unsafe concurrent access.";
+}
+
+/**
+ * @brief Tests that move-constructing from a sequence while it's being read is unsafe.
+ *
+ * This test is similar to the move assignment test but targets the move constructor.
+ * It creates one thread that continuously reads from the shared sequence and a
+ * second thread that move-constructs a new sequence from it. Without a lock in
+ * the move constructor, the reader thread will likely access a dangling pointer,
+ * causing a crash (undefined behavior).
+ */
+TEST(DataBlockSequenceThreadTest, MoveConstructionWhileReadingIsUnsafe)
+{
+    auto shared_seq = std::make_shared<iterator_mutex::DataBlockSequence>(std::vector<int>(1000, 1));
+
+    std::atomic<bool> keep_reading = true;
+    std::atomic<bool> reader_crashed = false;
+
+    // Reader thread: Continuously reads from the sequence
+    std::thread reader_thread(
+        [&]()
+        {
+            try
+            {
+                while (keep_reading)
+                {
+                    shared_seq->get_value(1);  // Just keep accessing the object
+                }
+            }
+            catch (...)
+            {
+                reader_crashed = true;
+            }
+        });
+
+    // Give the reader a moment to start
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // Mover thread: Move-constructs a new sequence from the shared one.
+    // This is the critical, unsafe operation if the move constructor is not locked.
+    iterator_mutex::DataBlockSequence new_seq(std::move(*shared_seq));
+
+    // Signal the reader to stop and wait for it to finish
+    keep_reading = false;
+    reader_thread.join();
+
+    // The new sequence should now have the data
+    EXPECT_EQ(new_seq.get_total_size(), 1000);
+
+    // If the reader crashed, the test fails.
+    EXPECT_FALSE(reader_crashed) << "The reader thread crashed due to unsafe concurrent access.";
+}
