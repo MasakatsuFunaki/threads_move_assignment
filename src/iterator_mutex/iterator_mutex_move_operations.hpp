@@ -18,7 +18,7 @@ public:
     DataBlockSequence(DataBlockSequence&& other) noexcept;
     DataBlockSequence& operator=(DataBlockSequence&& other) noexcept;
 
-    std::optional<int> get_value(size_t index) const;
+    std::optional<int> get_value(int value) const;
 
     size_t get_total_size() const;
 

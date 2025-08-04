@@ -6,6 +6,7 @@ namespace iterator_mutex {
 
 DataBlockSequence::DataBlockSequence(const std::vector<int>& values)
     : blocks_(values) {
+    std::sort(blocks_.begin(), blocks_.end());
     if (!blocks_.empty()) {
         mru_block_iterator_ = blocks_.cbegin();
     }
@@ -53,19 +54,25 @@ DataBlockSequence& DataBlockSequence::operator=(DataBlockSequence&& other) noexc
     return *this;
 }
 
-std::optional<int> DataBlockSequence::get_value(size_t index) const {
+std::optional<int> DataBlockSequence::get_value(int value) const {
     std::lock_guard<std::mutex> lock(mru_mutex_);
 
-    if (index >= blocks_.size()) {
-        return std::nullopt;
-    }
-
-    if (mru_block_iterator_ != blocks_.cend() && std::distance(blocks_.cbegin(), mru_block_iterator_) == index) {
+    // 1. Check the MRU cache first.
+    if (mru_block_iterator_ != blocks_.cend() && *mru_block_iterator_ == value) {
         return *mru_block_iterator_;
     }
 
-    mru_block_iterator_ = blocks_.cbegin() + index;
-    return *mru_block_iterator_;
+    // 2. If not in cache, perform a binary search.
+    auto it = std::lower_bound(blocks_.cbegin(), blocks_.cend(), value);
+
+    // 3. Check if we found the exact value.
+    if (it != blocks_.cend() && *it == value) {
+        mru_block_iterator_ = it; // Update cache
+        return *it;
+    }
+
+    // 4. Value not found.
+    return std::nullopt;
 }
 
 size_t DataBlockSequence::get_total_size() const {
