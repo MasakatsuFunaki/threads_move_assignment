@@ -4,12 +4,8 @@ project(
     my-first-project
     VERSION 0.1.0
     DESCRIPTION "my description"
-    HOMEPAGE_URL "https://example.com/"
     LANGUAGES CXX
 )
-
-# Set PROJECT_IS_TOP_LEVEL variable
-string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}" PROJECT_IS_TOP_LEVEL)
 
 # ---- Declare library ----
 
@@ -38,10 +34,9 @@ target_compile_features(mfp PUBLIC cxx_std_17)
 
 # ---- Developer mode ----
 
-if(PROJECT_IS_TOP_LEVEL)
   include(CTest)
   if(BUILD_TESTING)
     add_subdirectory(test)
   endif()
-endif()
+
 

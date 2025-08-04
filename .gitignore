@@ -7,7 +7,5 @@ cmake-build-*/
 conan/
 prefix/
 .clangd
-CMakeLists.txt.user
-CMakeUserPresets.json
 compile_commands.json
 conan_cache_*.tgz
