@@ -9,23 +9,21 @@ project(
 
 # ---- Declare library ----
 
-add_library(mfp source/my_first_project.cpp)
-add_library(my-first-project::my-first-project ALIAS mfp)
-
+add_library(my-first-project src/iterator_mutex/iterator_mutex_move_operations.cpp)
 
 target_include_directories(
-    mfp
+    my-first-project
     PUBLIC
-    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/iterator_mutex>"
 )
 
 target_include_directories(
-    mfp SYSTEM
+    my-first-project SYSTEM
     PUBLIC
     "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/export>"
 )
 
-target_compile_features(mfp PUBLIC cxx_std_17)
+target_compile_features(my-first-project PUBLIC cxx_std_17)
 
 
 # ---- Examples ----
