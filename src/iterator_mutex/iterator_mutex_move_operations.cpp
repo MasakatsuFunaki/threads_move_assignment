@@ -1,13 +1,16 @@
 #include "iterator_mutex_move_operations.hpp"
-#include <iostream>
+
 #include <algorithm>
+#include <iostream>
 
-namespace iterator_mutex {
+namespace iterator_mutex
+{
 
-DataBlockSequence::DataBlockSequence(const std::vector<int>& values)
-    : blocks_(values) {
+DataBlockSequence::DataBlockSequence(const std::vector<int>& values) : blocks_(values)
+{
     std::sort(blocks_.begin(), blocks_.end());
-    if (!blocks_.empty()) {
+    if (!blocks_.empty())
+    {
         mru_block_iterator_ = blocks_.cbegin();
     }
 }
@@ -16,7 +19,7 @@ DataBlockSequence::DataBlockSequence(const std::vector<int>& values)
 DataBlockSequence::DataBlockSequence(DataBlockSequence&& other) noexcept
     // 1. Move the vector. This is the main resource transfer.
     : blocks_(std::move(other.blocks_))
-    // 2. The mutex is NOT moved. The new object's mutex is default-initialized to an unlocked state.
+// 2. The mutex is NOT moved. The new object's mutex is default-initialized to an unlocked state.
 {
     // 3. The iterator from 'other' is now invalid. Initialize the new object's
     //    iterator to a valid state relative to its newly acquired vector.
@@ -24,14 +27,15 @@ DataBlockSequence::DataBlockSequence(DataBlockSequence&& other) noexcept
 
     // The 'other' object is left in a valid but empty state.
     // We can also clear its iterator to be safe.
-    other.mru_block_iterator_ = other.blocks_.cbegin(); 
+    other.mru_block_iterator_ = other.blocks_.cbegin();
 }
 
 // Custom Move Assignment Operator
 DataBlockSequence& DataBlockSequence::operator=(DataBlockSequence&& other) noexcept
 {
     // Protect against self-assignment
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -54,11 +58,13 @@ DataBlockSequence& DataBlockSequence::operator=(DataBlockSequence&& other) noexc
     return *this;
 }
 
-std::optional<int> DataBlockSequence::get_value(int value) const {
+std::optional<int> DataBlockSequence::get_value(int value) const
+{
     std::lock_guard<std::mutex> lock(mru_mutex_);
 
     // 1. Check the MRU cache first.
-    if (mru_block_iterator_ != blocks_.cend() && *mru_block_iterator_ == value) {
+    if (mru_block_iterator_ != blocks_.cend() && *mru_block_iterator_ == value)
+    {
         return *mru_block_iterator_;
     }
 
@@ -66,17 +72,18 @@ std::optional<int> DataBlockSequence::get_value(int value) const {
     auto it = std::lower_bound(blocks_.cbegin(), blocks_.cend(), value);
 
     // 3. Check if we found the exact value.
-    if (it != blocks_.cend() && *it == value) {
-        mru_block_iterator_ = it; // Update cache
+    if (it != blocks_.cend() && *it == value)
+    {
+        mru_block_iterator_ = it;  // Update cache
         return *it;
     }
-
     // 4. Value not found.
     return std::nullopt;
 }
 
-size_t DataBlockSequence::get_total_size() const {
+size_t DataBlockSequence::get_total_size() const
+{
     return blocks_.size();
 }
 
-} // namespace iterator_mutex
+}  // namespace iterator_mutex

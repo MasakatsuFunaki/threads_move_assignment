@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
-#include "iterator_mutex_move_operations.hpp"
+
+#include <numeric>
 #include <thread>
 #include <vector>
-#include <numeric>
+
+#include "iterator_mutex_move_operations.hpp"
 
 // --- Test Fixture for DataBlockSequence ---
-class DataBlockSequenceTest : public ::testing::Test {
+class DataBlockSequenceTest : public ::testing::Test
+{
 protected:
     // Note: The constructor will sort these values.
     const std::vector<int> initial_values_ = {50, 10, 40, 20, 30};
@@ -21,7 +24,8 @@ protected:
  * Verifies that the total size of the sequence matches the number of elements
  * and that an element known to be in the initial set can be found.
  */
-TEST_F(DataBlockSequenceTest, ConstructorInitializesAndSorts) {
+TEST_F(DataBlockSequenceTest, ConstructorInitializesAndSorts)
+{
     EXPECT_EQ(seq_.get_total_size(), 5);
     // Check that a value exists, confirming it was sorted and is findable.
     EXPECT_TRUE(seq_.get_value(40).has_value());
@@ -33,7 +37,8 @@ TEST_F(DataBlockSequenceTest, ConstructorInitializesAndSorts) {
  * Verifies that the total size is 0 and that attempting to get a value
  * from an empty sequence correctly returns a non-valued optional.
  */
-TEST(DataBlockSequenceEmptyTest, HandlesEmptyVector) {
+TEST(DataBlockSequenceEmptyTest, HandlesEmptyVector)
+{
     iterator_mutex::DataBlockSequence empty_seq({});
     EXPECT_EQ(empty_seq.get_total_size(), 0);
     EXPECT_FALSE(empty_seq.get_value(0).has_value());
@@ -47,7 +52,8 @@ TEST(DataBlockSequenceEmptyTest, HandlesEmptyVector) {
  * Verifies that calling get_value with values known to be in the sequence
  * returns an optional containing the correct value.
  */
-TEST_F(DataBlockSequenceTest, GetValueRetrievesCorrectValues) {
+TEST_F(DataBlockSequenceTest, GetValueRetrievesCorrectValues)
+{
     ASSERT_TRUE(seq_.get_value(10).has_value());
     EXPECT_EQ(seq_.get_value(10).value(), 10);
 
@@ -64,8 +70,9 @@ TEST_F(DataBlockSequenceTest, GetValueRetrievesCorrectValues) {
  * Verifies that calling get_value with a value that does not exist in the
  * sequence correctly returns a non-valued optional.
  */
-TEST_F(DataBlockSequenceTest, GetValueHandlesMissingValues) {
-    EXPECT_FALSE(seq_.get_value(99).has_value()); // Value not present
+TEST_F(DataBlockSequenceTest, GetValueHandlesMissingValues)
+{
+    EXPECT_FALSE(seq_.get_value(99).has_value());  // Value not present
     EXPECT_FALSE(seq_.get_value(0).has_value());   // Value not present
 }
 
@@ -76,7 +83,8 @@ TEST_F(DataBlockSequenceTest, GetValueHandlesMissingValues) {
  * on its own by searching for a value that is neither the first element nor the
  * most recently used one.
  */
-TEST_F(DataBlockSequenceTest, GetValueFindsValueNotInCache) {
+TEST_F(DataBlockSequenceTest, GetValueFindsValueNotInCache)
+{
     // The MRU iterator is initialized to the beginning (10).
     // We search for 40, which is not in the cache, forcing a binary search.
     ASSERT_TRUE(seq_.get_value(40).has_value());
@@ -93,7 +101,8 @@ TEST_F(DataBlockSequenceTest, GetValueFindsValueNotInCache) {
  * the cache by accessing one element and then immediately accessing it again,
  * before repeating the process with a different element.
  */
-TEST_F(DataBlockSequenceTest, GetValueUsesMruCache) {
+TEST_F(DataBlockSequenceTest, GetValueUsesMruCache)
+{
     // Prime the cache by searching for 30
     ASSERT_EQ(seq_.get_value(30).value(), 30);
     // This second call should hit the cache
@@ -114,7 +123,8 @@ TEST_F(DataBlockSequenceTest, GetValueUsesMruCache) {
  * an existing one. It checks that the new object receives the correct state (data and size)
  * and that the moved-from object is left in a valid but empty state.
  */
-TEST_F(DataBlockSequenceTest, MoveConstructorTransfersState) {
+TEST_F(DataBlockSequenceTest, MoveConstructorTransfersState)
+{
     iterator_mutex::DataBlockSequence moved_seq(std::move(seq_));
 
     // Check the new object
@@ -134,7 +144,8 @@ TEST_F(DataBlockSequenceTest, MoveConstructorTransfersState) {
  * moved r-value. It checks that the target object correctly receives the state
  * and that the moved-from object is left in a valid but empty state.
  */
-TEST_F(DataBlockSequenceTest, MoveAssignmentTransfersState) {
+TEST_F(DataBlockSequenceTest, MoveAssignmentTransfersState)
+{
     iterator_mutex::DataBlockSequence moved_to_seq({99, 88});
 
     moved_to_seq = std::move(seq_);
@@ -155,7 +166,8 @@ TEST_F(DataBlockSequenceTest, MoveAssignmentTransfersState) {
  * Verifies that an object remains in a valid, unchanged state after being
  * move-assigned to itself. This is a critical safety check for assignment operators.
  */
-TEST_F(DataBlockSequenceTest, MoveAssignmentHandlesSelfAssignment) {
+TEST_F(DataBlockSequenceTest, MoveAssignmentHandlesSelfAssignment)
+{
     // This is tricky to test directly without causing a compiler warning.
     // The check `if (this == &other)` is the primary safeguard.
     // We'll just ensure the object is unchanged after a "self-move".
@@ -175,14 +187,17 @@ TEST_F(DataBlockSequenceTest, MoveAssignmentHandlesSelfAssignment) {
  * correctly protects the internal state, preventing data races and ensuring
  * all reads retrieve the correct values.
  */
-TEST(DataBlockSequenceThreadTest, ConcurrentReadsAreSafe) {
+TEST(DataBlockSequenceThreadTest, ConcurrentReadsAreSafe)
+{
     std::vector<int> large_vec(1000);
-    std::iota(large_vec.begin(), large_vec.end(), 0); // Fill with 0, 1, 2, ...
+    std::iota(large_vec.begin(), large_vec.end(), 0);  // Fill with 0, 1, 2, ...
 
     const iterator_mutex::DataBlockSequence shared_seq(large_vec);
-    
-    auto reader_task = [&](int start_value) {
-        for (int i = 0; i < 100; ++i) {
+
+    auto reader_task = [&](int start_value)
+    {
+        for (int i = 0; i < 100; ++i)
+        {
             int value_to_find = (start_value + i) % static_cast<int>(shared_seq.get_total_size());
             auto val = shared_seq.get_value(value_to_find);
             ASSERT_TRUE(val.has_value());
@@ -191,11 +206,13 @@ TEST(DataBlockSequenceThreadTest, ConcurrentReadsAreSafe) {
     };
 
     std::vector<std::thread> threads;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; ++i)
+    {
         threads.emplace_back(reader_task, i * 50);
     }
 
-    for (auto& t : threads) {
+    for (auto& t : threads)
+    {
         t.join();
     }
 }

@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <mutex>
 #include <optional>
+#include <vector>
 
-namespace iterator_mutex {
+namespace iterator_mutex
+{
 
 class DataBlockSequence
 {
@@ -28,4 +29,4 @@ private:
     mutable std::mutex mru_mutex_;
 };
 
-}
+}  // namespace iterator_mutex
