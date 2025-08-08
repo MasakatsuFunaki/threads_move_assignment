@@ -6,6 +6,34 @@ It specifically focuses on:
 - Using a `std::mutex` to protect shared state.
 - Implementing correct, thread-safe move semantics for a class that contains a `std::mutex`.
 
+## Prerequisites (macOS)
+
+Before building this project, you'll need to install the following tools:
+
+### 1. Install Homebrew (if not already installed)
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 2. Install Required Tools
+```bash
+# Install CMake
+brew install cmake
+
+# Install Python 3 (if not already installed)
+brew install python3
+
+# Install Conan 2
+pip3 install conan
+```
+
+### 3. Verify Installation
+```bash
+cmake --version
+python3 --version
+conan --version
+```
+
 ## Demonstrating the Data Race
 
 This project includes tests specifically designed to fail catastrophically if the class is not thread-safe. You can see this in action by following these steps.
